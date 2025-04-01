@@ -1,5 +1,6 @@
 //User schema what field user will have in database
-
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 const validator = require("validator");
 
@@ -25,15 +26,9 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      validate(value) {
-        if (!validator.isStrongPassword(value)) {
-          throw new Error("Password is not strong" + values);
-        }
-      },
     },
 
     age: { type: Number, min: 18 },
-
     gender: {
       type: String,
       validate(value) {
@@ -62,5 +57,23 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+userSchema.methods.getJWT = async function () {
+  const user = this;
+  const token = await jwt.sign({ _id: user._id }, "DEV@TINDER$007", {
+    expiresIn: "7d",
+  });
+};
+
+userSchema.methods.validatePassword = async function (passwordInputByUser) {
+  const user = this;
+
+  const isPasswordValid = await bcrypt.compare(
+    passwordInputByUser,
+    user.password
+  );
+
+  return isPasswordValid;
+};
 
 module.exports = mongoose.model("User", userSchema);

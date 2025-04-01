@@ -1,90 +1,79 @@
 const express = require("express");
 const connectDB = require("./config/database");
 const User = require("./models/user");
+const cookieParser = require("cookie-parser");
+const { validateSignUpData } = require("./utils/validation");
+const { userAuth } = require("./middlewares/auth");
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
   // first step is to perform the data validation form the req.body
-
-  // then we will encrypt the password
-  // then we will create the instance of the user model to store it in db.
-
-  const userObj = req.body;
-
+  const { firstName, lastName, emailId, password } = req.body;
   try {
+    validateSignUpData(req);
+    // then we will encrypt the password
+    const passwordHash = await bcrypt.hash(password, 10);
+    // then we will create the instance of the user model to store it in db.
+
     // created the new instance of the user model
-    const user = new User(userObj);
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    });
     const dbPush = await user.save();
     res.json({
       user: dbPush._id,
       message: "User created successfully",
     });
   } catch (error) {
-    res.status(500).send(error.message);
+    res.status(500).send("Error :" + error.message);
   }
 });
 
-//Get a single user
-app.get("/user", async (req, res) => {
-  const userEmail = req.body.email;
-
+app.post("/login", async (req, res) => {
   try {
-    const user = await User.findOne({ email: userEmail });
-    user ? res.send(user) : res.send("User not found");
-  } catch (error) {
-    res.send("Internal server error to find");
-  }
-});
+    const { emailId, password } = req.body;
+    if (!validator.isEmail(emailId))
+      throw new Error("Email or password is not valid");
 
-// THis feed api will get all the data
-app.get("/feed", async (req, res) => {
-  try {
-    const users = await User.find();
-    res.send(users);
-  } catch (error) {
-    res.send("Internal server error to find");
-  }
-});
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) throw new Error("Revalidate the email or password");
 
-//Delete the id by userID
-app.delete("/delete", async (req, res) => {
-  const userId = req.body.userId;
-  try {
-    await User.findByIdAndDelete(userId);
-    res.send("User deleted successfully");
-  } catch (error) {
-    res.send("Internal server error not deleted");
-  }
-});
+    const isPasswordValid = user.validatePassword(password);
 
-//update the data of user
-app.patch("/update/:userId", async (req, res) => {
-  const userId = req.params?.userId;
-  const data = req.body;
+    if (isPasswordValid) {
+      const token = user.getJWT();
 
-  try {
-    const ALLOWED_UPDATES = ["photoUrl", "about", "age", "gender", "skills"];
-    const isUpdateAllowed = Object.keys(data).every((k) =>
-      ALLOWED_UPDATES.includes(k)
-    );
-
-    if (!isUpdateAllowed) {
-      throw new Error("Update not allowed on this field");
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 360000),
+      });
+      res.send("login successful token send");
+      // add the token to cookies and send the response
+    } else {
+      throw new Error("Failed to login check email or password");
     }
-
-    if (data.skills.length > 10)
-      throw new Error("Skills should be less than 10");
-
-    const user = await User.findByIdAndUpdate({ _id: userId }, data, {
-      returnDocument: "after",
-      runValidators: true,
-    });
-    res.json(user);
   } catch (error) {
-    res.send("Internal server error:" + error.message);
+    res.status(500).send("Error :" + error.message);
   }
+});
+
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    res.send(user);
+  } catch (error) {
+    res.status(400).send("Error :" + error.message);
+  }
+});
+
+app.post("/send-connect", userAuth, async (req, res) => {
+  console.log("sending connect req");
+  res.send("connect sent");
 });
 
 connectDB()
