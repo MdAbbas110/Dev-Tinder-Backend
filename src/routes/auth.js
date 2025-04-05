@@ -1,6 +1,7 @@
 const express = require("express");
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
+const validator = require("validator");
 const { validateSignUpData } = require("../utils/validation");
 
 const authRouter = express.Router();
@@ -36,16 +37,19 @@ authRouter.post("/signup", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
+
     if (!validator.isEmail(emailId))
       throw new Error("Email or password is not valid");
 
     const user = await User.findOne({ emailId: emailId });
+
     if (!user) throw new Error("Revalidate the email or password");
 
-    const isPasswordValid = user.validatePassword(password);
+    const isPasswordValid = await user.validatePassword(password);
 
     if (isPasswordValid) {
-      const token = user.getJWT();
+      const token = await user.getJWT();
+      console.log(token);
 
       res.cookie("token", token, {
         expires: new Date(Date.now() + 8 * 360000),
@@ -58,6 +62,14 @@ authRouter.post("/login", async (req, res) => {
   } catch (error) {
     res.status(500).send("Error :" + error.message);
   }
+});
+
+authRouter.post("/logout", (req, res) => {
+  res
+    .cookie("token", null, {
+      expires: new Date(Date.now()),
+    })
+    .send("User logout successfully");
 });
 
 module.exports = authRouter;
