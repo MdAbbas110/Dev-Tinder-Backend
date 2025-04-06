@@ -6,16 +6,19 @@ const { validateEditProfileData } = require("../utils/validation");
 
 const profileRouter = express.Router();
 
-profileRouter.get("/profile/view", userAuth, async (req, res) => {
+profileRouter.get("/view", userAuth, async (req, res) => {
   try {
     const user = req.user;
-    res.send(user);
+    res.status(200).json({
+      message: "User Profile",
+      data: user,
+    });
   } catch (error) {
     res.status(400).send("Error :" + error.message);
   }
 });
 
-profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
+profileRouter.patch("/edit", userAuth, async (req, res) => {
   try {
     if (!validateEditProfileData(req)) {
       throw new Error("Invalid edit request");
@@ -36,7 +39,7 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
   }
 });
 
-profileRouter.post("/profile/reset/password", userAuth, async (req, res) => {
+profileRouter.post("/reset/password", userAuth, async (req, res) => {
   const { oldPassword, newPassword, confirmPassword } = req.body;
 
   try {
@@ -64,7 +67,7 @@ profileRouter.post("/profile/reset/password", userAuth, async (req, res) => {
   }
 });
 
-profileRouter.post("/profile/forgot/password", userAuth, (req, res) => {
+profileRouter.post("/forgot/password", userAuth, (req, res) => {
   const { emailId } = req.body;
 });
 

@@ -12,8 +12,8 @@ app.use(cookieParser());
 
 // Using all the routes defined
 app.use("/", authRouter);
-app.use("/", profileRouter);
-app.use("/", requestRouter);
+app.use("/profile", profileRouter);
+app.use("/request", requestRouter);
 
 connectDB()
   .then(() => {
