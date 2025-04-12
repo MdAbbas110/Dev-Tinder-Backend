@@ -92,7 +92,7 @@ requestRouter.post("/review/:status/:requestId", userAuth, async (req, res) => {
       status: "interested",
     });
 
-    if (!connectRequest) {
+    if (!connectionRequest) {
       return res.status(400).json({
         success: false,
         message: "Connection request not found",
@@ -101,6 +101,15 @@ requestRouter.post("/review/:status/:requestId", userAuth, async (req, res) => {
 
     connectionRequest.status = status;
     const data = await connectionRequest.save();
+
+    res.status(200).json({
+      success: true,
+      message:
+        status === "accepted"
+          ? `Connection request accepted by ${loggedInUser.firstName}`
+          : `Connection request rejected by ${loggedInUser.firstName}`,
+      data,
+    });
   } catch (error) {
     res.status(400).json({
       success: false,
@@ -110,11 +119,3 @@ requestRouter.post("/review/:status/:requestId", userAuth, async (req, res) => {
 });
 
 module.exports = requestRouter;
-
-/**
- * 
- * {
-    "emailId": "meann@gmail.com",
-    "password": "Aslimadad@110"
-}
- */
