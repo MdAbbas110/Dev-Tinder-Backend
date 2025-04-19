@@ -48,19 +48,20 @@ authRouter.post("/login", async (req, res) => {
     const isPasswordValid = await user.validatePassword(password);
 
     if (isPasswordValid) {
-      const token = await user.getJWT();
-      console.log(token);
+      const { token, expiresAt } = await user.getJWT();
 
       res.cookie("token", token, {
-        expires: new Date(Date.now() + 8 * 360000),
+        httpOnly: true,
+        expires: new Date(expiresAt), // Use the expiration timestamp
       });
+
       res.send("login successful token send");
-      // add the token to cookies and send the response
+      // added the token to cookies and send the response
     } else {
       throw new Error("Failed to login check email or password");
     }
   } catch (error) {
-    res.status(500).send("Error :" + error.message);
+    res.status(500).send("Error : " + error.message);
   }
 });
 
