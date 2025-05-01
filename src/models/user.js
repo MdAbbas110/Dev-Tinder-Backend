@@ -29,6 +29,7 @@ const userSchema = new mongoose.Schema(
     },
 
     age: { type: Number, min: 18 },
+
     gender: {
       type: String,
       enum: {
@@ -40,7 +41,8 @@ const userSchema = new mongoose.Schema(
     photoUrl: {
       type: String,
       validate(value) {
-        if (!validator.isURL(value)) {
+        if (value && !validator.isURL(value)) {
+          // Only validate if value exists
           throw new Error("Photo URL is not valid");
         }
       },
@@ -48,9 +50,17 @@ const userSchema = new mongoose.Schema(
         "https://thumbs.dreamstime.com/b/blank-grey-scale-profile-picture-placeholder-suitable-representing-user-avatar-contact-generic-style-short-hair-335067558.jpg",
     },
 
-    about: { type: String, default: "fallback default user info" },
+    about: {
+      type: String,
+      default: "fallback default user info",
+      // Add a setter to handle empty strings
+      set: (v) => (v === "" ? undefined : v),
+    },
 
-    skills: { type: [String] },
+    skills: {
+      type: [String],
+      default: [], // Ensure empty array as default
+    },
   },
   {
     timestamps: true,

@@ -1,14 +1,35 @@
 const validator = require("validator");
 
+// Improved validation function
 const validateSignUpData = (req) => {
-  // first will extract the data form the req body
-  const { firstName, lastName, emailId, password } = req.body;
+  const { firstName, emailId, password } = req.body;
 
-  if (!firstName || !lastName)
-    throw new Error("First name and last name are required");
-  else if (!validator.isEmail(emailId)) throw new Error("Email is not valid");
-  else if (!validator.isStrongPassword(password))
-    throw new Error("Please enter a strong password");
+  if (!firstName || firstName.length < 4 || firstName.length > 30) {
+    throw new SignUpValidationError(
+      "First name must be between 4 and 30 characters"
+    );
+  }
+
+  if (!emailId || !validator.isEmail(emailId)) {
+    throw new SignUpValidationError("Valid email is required");
+  }
+
+  if (!password || password.length < 6) {
+    throw new SignUpValidationError(
+      "Password must be at least 6 characters long"
+    );
+  }
+
+  // Add password strength validation
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+  if (!passwordRegex.test(password)) {
+    throw new SignUpValidationError(
+      "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
+    );
+  }
+
+  return true;
 };
 
 const validateEditProfileData = (req) => {

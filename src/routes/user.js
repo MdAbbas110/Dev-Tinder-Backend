@@ -6,7 +6,8 @@ const ConnectionRequest = require("../models/connectionRequest");
 
 const userRouter = express.Router();
 
-const USER_EXTRACTED_FIELDS = "firstName lastName photoUrl age about skills";
+const USER_EXTRACTED_FIELDS =
+  "firstName lastName photoUrl age about skills gender";
 
 // Get all the pending connection request for the loggedIn user
 userRouter.get("/requests/received", userAuth, async (req, res) => {
@@ -35,7 +36,6 @@ userRouter.get("/connections", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
 
-    // Finding the connections being accepted to show the connected count.
     const connections = await ConnectionRequest.find({
       $or: [
         { fromUserId: loggedInUser._id, status: "accepted" },
@@ -45,14 +45,15 @@ userRouter.get("/connections", userAuth, async (req, res) => {
       .populate("fromUserId", USER_EXTRACTED_FIELDS)
       .populate("toUserId", USER_EXTRACTED_FIELDS);
 
-    //? If comparing mongodb's _id directly its not possible because it is an object so we need to do either .equals or toString()
-    const data = connections.map(
-      (row) => row.fromUserId._id.toString() === loggedInUser._id.toString()
+    const data = connections.map((row) =>
+      row.fromUserId._id.toString() === loggedInUser._id.toString()
+        ? row.toUserId
+        : row.fromUserId
     );
 
     res.status(200).json({
       success: true,
-      data: connections,
+      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -65,6 +66,15 @@ userRouter.get("/connections", userAuth, async (req, res) => {
 userRouter.get("/feed", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
+
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    // to avid the limit being passed more then 10 max allowed is 50
+    limit = limit > 50 ? 50 : limit;
+
+    const skipFormula = (page - 1) * limit;
+
+    console.log(page, limit, skipFormula);
 
     const alreadyInteracted = await ConnectionRequest.find({
       $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
@@ -82,7 +92,10 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         { _id: { $nin: Array.from(hiddenUsersOnFeed) } },
         { _id: { $ne: loggedInUser._id } },
       ],
-    }).select(USER_EXTRACTED_FIELDS);
+    })
+      .select(USER_EXTRACTED_FIELDS)
+      .skip(skipFormula)
+      .limit(limit);
 
     res.send(usersToShow);
   } catch (error) {

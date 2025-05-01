@@ -10,7 +10,6 @@ profileRouter.get("/view", userAuth, async (req, res) => {
   try {
     const user = req.user;
     res.status(200).json({
-      message: "User Profile",
       data: user,
     });
   } catch (error) {
@@ -31,7 +30,7 @@ profileRouter.patch("/edit", userAuth, async (req, res) => {
     await loggedInUser.save();
 
     res.json({
-      message: loggedInUser.firstName + " your profile information edited",
+      success: true,
       data: loggedInUser,
     });
   } catch (error) {
